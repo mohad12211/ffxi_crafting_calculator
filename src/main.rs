@@ -91,30 +91,17 @@ impl Recipe {
 
     fn get_crystal_cost(&self, crystals: &Crystals) -> f32 {
         (match self.crystal.name.split('_').next().unwrap() {
-            "earth" => crystals.earth.parse().unwrap_or(0.0),
-            "fire" => crystals.fire.parse().unwrap_or(0.0),
-            "water" => crystals.water.parse().unwrap_or(0.0),
-            "wind" => crystals.wind.parse().unwrap_or(0.0),
-            "ice" => crystals.ice.parse().unwrap_or(0.0),
-            "lightning" => crystals.lightning.parse().unwrap_or(0.0),
-            "light" => crystals.light.parse().unwrap_or(0.0),
-            "dark" => crystals.dark.parse().unwrap_or(0.0),
+            "Earth" => crystals.earth.parse().unwrap_or(0.0),
+            "Fire" => crystals.fire.parse().unwrap_or(0.0),
+            "Water" => crystals.water.parse().unwrap_or(0.0),
+            "Wind" => crystals.wind.parse().unwrap_or(0.0),
+            "Ice" => crystals.ice.parse().unwrap_or(0.0),
+            "Lightning" => crystals.lightning.parse().unwrap_or(0.0),
+            "Light" => crystals.light.parse().unwrap_or(0.0),
+            "Dark" => crystals.dark.parse().unwrap_or(0.0),
             _ => 0.0,
         } / 12.0)
     }
-}
-
-fn show(str: &str) -> String {
-    str.split('_')
-        .map(|x| {
-            let mut c = x.chars();
-            match c.next() {
-                None => String::new(),
-                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-            }
-        })
-        .collect::<Vec<String>>()
-        .join(" ")
 }
 
 struct Calc {
@@ -162,10 +149,10 @@ impl Calc {
                             ui.label(recipe.level.to_string());
                         });
                         row.col(|ui| {
-                            ui.label(show(&recipe.item.name));
+                            ui.label(&recipe.item.name);
                         });
                         row.col(|ui| {
-                            ui.label(show(recipe.crystal.name.split('_').next().unwrap()));
+                            ui.label(&recipe.crystal.name);
                         });
                         row.col(|ui| {
                             ui.label(format!("{:.1}", recipe.produce_cost.unwrap_or(0.0)));
@@ -196,7 +183,7 @@ impl Calc {
 impl Default for Calc {
     fn default() -> Self {
         let data = fs::read("recipes").expect("Unable to read file");
-        let decoded: Vec<Recipe> = bincode::deserialize(&data[..]).unwrap();
+        let mut decoded: Vec<Recipe> = bincode::deserialize(&data[..]).unwrap();
 
         Self {
             recipes: decoded,
