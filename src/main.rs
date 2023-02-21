@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use std::{fs, process::Command};
+use std::fs;
 
 use eframe::{
     egui::{self, Button},
@@ -65,31 +65,6 @@ struct Recipe {
 }
 
 impl Recipe {
-    fn new(name: &str) -> Self {
-        let mut ingredients: Vec<Item> = Vec::new();
-        let output = grep(name, "/home/mohad/sources/AirSkyBoat/sql/synth_recipes.sql");
-        for id in output.split(',').skip(13).take(8) {
-            if id == "0" {
-                break;
-            }
-            if let Some(dup) = ingredients.iter_mut().find(|x| x.id == id) {
-                dup.quantity += 1;
-            } else {
-                ingredients.push(Item::from_id(id));
-            }
-        }
-        let mut r = Recipe {
-            item: Item::from_id(output.split(',').nth(21).unwrap()),
-            output_size: output.split(',').nth(25).unwrap().parse().unwrap(),
-            ingredients,
-            crystal: Item::from_id(output.split(',').nth(11).unwrap()),
-            level: output.split(',').nth(10).unwrap().parse().unwrap(),
-            produce_cost: None,
-        };
-        r.calculate_produce_cost(0.0);
-        r
-    }
-
     fn calculate_produce_cost(&mut self, crystal_cost: f32) {
         let mut sum: f32 = 0.0;
         for i in &self.ingredients {
@@ -129,37 +104,6 @@ impl Recipe {
     }
 }
 
-impl Item {
-    fn from_id(id: &str) -> Self {
-        let output = grep(&format!("({},", id), "item_basic.sql");
-        let parts = output.trim().split(',').collect::<Vec<&str>>();
-        let npc_price = regex(
-            &format!("^\\s+{},\\s+\\d+,.*--", id),
-            "/home/mohad/sources/AirSkyBoat/scripts/zones/*",
-        );
-        Self {
-            name: parts[3][1..parts[3].len() - 1].to_string(),
-            id: parts[0][parts[0].find('(').unwrap() + 1..].to_string(),
-            stack_size: parts[4].parse().unwrap(),
-            buy: Price {
-                ah: None,
-                npc: npc_price
-                    .trim()
-                    .lines()
-                    .map(|l| l.split(',').nth(1).unwrap().trim().parse().unwrap())
-                    .min_by(f32::total_cmp),
-                choice: Choice::NPC,
-            },
-            sell: Price {
-                ah: None,
-                npc: parts[8].trim().strip_suffix(");").unwrap().parse().ok(),
-                choice: Choice::NPC,
-            },
-            quantity: 1,
-        }
-    }
-}
-
 fn show(str: &str) -> String {
     str.split('_')
         .map(|x| {
@@ -185,9 +129,7 @@ impl Calc {
         let table = TableBuilder::new(ui)
             .striped(true)
             .cell_layout(egui::Layout::left_to_right(eframe::emath::Align::Center))
-            .column(Column::auto())
-            .columns(Column::remainder().resizable(true), 5)
-            .column(Column::auto());
+            .columns(Column::remainder().resizable(true), 7);
 
         table
             .header(20., |mut header| {
@@ -344,37 +286,4 @@ impl eframe::App for Calc {
                 })
             });
     }
-}
-
-fn read_lines<P>(filename: P) -> std::io::Result<std::io::Lines<std::io::BufReader<std::fs::File>>>
-where
-    P: AsRef<std::path::Path>,
-{
-    let file = std::fs::File::open(filename)?;
-    Ok(std::io::BufRead::lines(std::io::BufReader::new(file)))
-}
-
-fn grep(pattern: &str, file: &str) -> String {
-    String::from_utf8_lossy(
-        &Command::new("grep")
-            .arg("-i")
-            .arg(pattern)
-            .arg(file)
-            .output()
-            .expect("failed to grep")
-            .stdout,
-    )
-    .to_string()
-}
-
-fn regex(pattern: &str, file: &str) -> String {
-    String::from_utf8_lossy(
-        &Command::new("bash")
-            .arg("-c")
-            .arg(format!("grep -Pr '{}' {}", pattern, file))
-            .output()
-            .expect("failed to grep")
-            .stdout,
-    )
-    .to_string()
 }
